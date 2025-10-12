@@ -1,0 +1,59 @@
+# Simple Autocorrect and Next Word Prediction Demo
+from collections import defaultdict, Counter
+import random
+
+# Small training corpus
+corpus = [
+    "i am happy",
+    "i am sad",
+    "i love python",
+    "you are happy",
+    "she is kind",
+    "he is smart",
+    "they are playing",
+    "i am learning python",
+]
+
+# Train bigram model
+bigrams = defaultdict(Counter)
+for sentence in corpus:
+    words = sentence.lower().split()
+    for w1, w2 in zip(words, words[1:]):
+        bigrams[w1][w2] += 1
+
+# Autocorrect helper: find word with smallest edit distance
+def edit_distance(a, b):
+    dp = [[i+j if i*j==0 else 0 for j in range(len(b)+1)] for i in range(len(a)+1)]
+    for i in range(1, len(a)+1):
+        for j in range(1, len(b)+1):
+            dp[i][j] = min(
+                dp[i-1][j]+1,
+                dp[i][j-1]+1,
+                dp[i-1][j-1] + (a[i-1] != b[j-1])
+            )
+    return dp[-1][-1]
+
+def autocorrect(word):
+    vocab = set(w for s in corpus for w in s.split())
+    return min(vocab, key=lambda w: edit_distance(word, w))
+
+def predict_next(word):
+    if word in bigrams:
+        return bigrams[word].most_common(3)
+    return []
+
+# Interactive test
+print("Autocorrect & Next-Word Predictor\nType a word (or 'exit' to stop):")
+while True:
+    w = input("\nYou: ").lower().strip()
+    if w == "exit": break
+
+    corrected = autocorrect(w)
+    if corrected != w:
+        print(f"Autocorrected to: {corrected}")
+
+    preds = predict_next(corrected)
+    if preds:
+        print("Next word suggestions:", [p[0] for p in preds])
+    else:
+        print("No prediction available.")
