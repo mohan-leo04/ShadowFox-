@@ -1,8 +1,13 @@
-# Simple Autocorrect and Next Word Prediction Demo
-from collections import defaultdict, Counter
-import random
+# Shodowfox
+# autocorrect_keyboard_gui.py
+# Simple GUI Autocorrect & Next-Word Prediction Keyboard using Tkinter
 
-# Small training corpus
+import tkinter as tk
+from collections import defaultdict, Counter
+
+# -----------------------------
+# 1. Training Data (tiny sample)
+# -----------------------------
 corpus = [
     "i am happy",
     "i am sad",
@@ -12,48 +17,100 @@ corpus = [
     "he is smart",
     "they are playing",
     "i am learning python",
+    "we are going to school",
+    "i love coding",
 ]
 
-# Train bigram model
+# Build bigram model
 bigrams = defaultdict(Counter)
+vocab = set()
 for sentence in corpus:
     words = sentence.lower().split()
     for w1, w2 in zip(words, words[1:]):
         bigrams[w1][w2] += 1
+        vocab.update([w1, w2])
 
-# Autocorrect helper: find word with smallest edit distance
+# -----------------------------
+# 2. Helper Functions
+# -----------------------------
 def edit_distance(a, b):
-    dp = [[i+j if i*j==0 else 0 for j in range(len(b)+1)] for i in range(len(a)+1)]
-    for i in range(1, len(a)+1):
-        for j in range(1, len(b)+1):
+    dp = [[i + j if i * j == 0 else 0 for j in range(len(b) + 1)] for i in range(len(a) + 1)]
+    for i in range(1, len(a) + 1):
+        for j in range(1, len(b) + 1):
             dp[i][j] = min(
-                dp[i-1][j]+1,
-                dp[i][j-1]+1,
-                dp[i-1][j-1] + (a[i-1] != b[j-1])
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + (a[i - 1] != b[j - 1]),
             )
     return dp[-1][-1]
 
 def autocorrect(word):
-    vocab = set(w for s in corpus for w in s.split())
+    if not word:
+        return word
     return min(vocab, key=lambda w: edit_distance(word, w))
 
 def predict_next(word):
     if word in bigrams:
-        return bigrams[word].most_common(3)
+        return [w for w, _ in bigrams[word].most_common(3)]
     return []
 
-# Interactive test
-print("Autocorrect & Next-Word Predictor\nType a word (or 'exit' to stop):")
-while True:
-    w = input("\nYou: ").lower().strip()
-    if w == "exit": break
+# -----------------------------
+# 3. Tkinter GUI
+# -----------------------------
+root = tk.Tk()
+root.title("Autocorrect & Next Word Predictor")
+root.geometry("450x300")
+root.config(bg="#f0f0f0")
 
-    corrected = autocorrect(w)
-    if corrected != w:
-        print(f"Autocorrected to: {corrected}")
+label = tk.Label(root, text="Type below:", font=("Arial", 12), bg="#f0f0f0")
+label.pack(pady=5)
+
+text_box = tk.Text(root, height=5, width=50, font=("Arial", 12))
+text_box.pack(pady=5)
+
+suggestion_label = tk.Label(root, text="Suggestions:", font=("Arial", 11, "bold"), bg="#f0f0f0")
+suggestion_label.pack()
+
+buttons_frame = tk.Frame(root, bg="#f0f0f0")
+buttons_frame.pack(pady=5)
+
+buttons = []
+for i in range(3):
+    b = tk.Button(buttons_frame, text="", font=("Arial", 11), width=12, bg="white", relief="ridge")
+    b.grid(row=0, column=i, padx=5)
+    buttons.append(b)
+
+# -----------------------------
+# 4. Core Logic
+# -----------------------------
+def update_suggestions(event=None):
+    content = text_box.get("1.0", tk.END).strip().lower()
+    words = content.split()
+    if not words:
+        for b in buttons:
+            b.config(text="")
+        return
+    last_word = words[-1]
+
+    corrected = autocorrect(last_word)
+    if corrected != last_word:
+        text_box.delete("end-2c wordstart", "end-1c")
+        text_box.insert(tk.END, corrected + " ")
 
     preds = predict_next(corrected)
-    if preds:
-        print("Next word suggestions:", [p[0] for p in preds])
-    else:
-        print("No prediction available.")
+    for i, b in enumerate(buttons):
+        b.config(text=preds[i] if i < len(preds) else "")
+
+def insert_suggestion(idx):
+    word = buttons[idx].cget("text")
+    if word:
+        text_box.insert(tk.END, word + " ")
+        update_suggestions()
+
+for i in range(3):
+    buttons[i].config(command=lambda i=i: insert_suggestion(i))
+
+text_box.bind("<space>", update_suggestions)
+text_box.bind("<KeyRelease>", update_suggestions)
+
+root.mainloop()
