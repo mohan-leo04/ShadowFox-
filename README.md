@@ -1,4 +1,4 @@
-# Shodowfox
+# Shadowfox
 # autocorrect_keyboard_gui.py
 # Simple GUI Autocorrect & Next-Word Prediction Keyboard using Tkinter
 
