@@ -114,3 +114,105 @@ text_box.bind("<space>", update_suggestions)
 text_box.bind("<KeyRelease>", update_suggestions)
 
 root.mainloop()
+
+
+# -------------------------------
+# Store Sales and Profit Analysis
+# -------------------------------
+
+# Import required libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Optional: to display plots inline (for Jupyter)
+# %matplotlib inline
+
+# -------------------------------
+# Step 1: Load Dataset
+# -------------------------------
+# Replace with your file path or Google Drive share link
+file_path = "your_dataset.csv"  # Example: 'store_sales.csv'
+data = pd.read_csv(file_path)
+
+# -------------------------------
+# Step 2: Basic Exploration
+# -------------------------------
+print("First 5 rows of data:\n", data.head())
+print("\nData Info:\n")
+print(data.info())
+print("\nMissing Values:\n", data.isnull().sum())
+
+# -------------------------------
+# Step 3: Data Cleaning
+# -------------------------------
+# Drop duplicates if any
+data = data.drop_duplicates()
+
+# Fill missing numeric values with median
+for col in data.select_dtypes(include=['float64', 'int64']).columns:
+    data[col] = data[col].fillna(data[col].median())
+
+# -------------------------------
+# Step 4: Summary Statistics
+# -------------------------------
+print("\nSummary Statistics:\n", data.describe())
+
+# -------------------------------
+# Step 5: Sales and Profit Analysis
+# -------------------------------
+# Total Sales and Profit
+total_sales = data['Sales'].sum()
+total_profit = data['Profit'].sum()
+print(f"\nTotal Sales: ₹{total_sales:,.2f}")
+print(f"Total Profit: ₹{total_profit:,.2f}")
+
+# Profit Margin
+data['Profit Margin (%)'] = (data['Profit'] / data['Sales']) * 100
+
+# -------------------------------
+# Step 6: Category-wise Analysis
+# -------------------------------
+category_summary = data.groupby('Category')[['Sales', 'Profit']].sum().sort_values('Sales', ascending=False)
+print("\nCategory-wise Summary:\n", category_summary)
+
+# Plot
+category_summary.plot(kind='bar', figsize=(8,5))
+plt.title('Sales and Profit by Category')
+plt.ylabel('Amount')
+plt.xlabel('Category')
+plt.grid(True)
+plt.show()
+
+# -------------------------------
+# Step 7: Region-wise Analysis
+# -------------------------------
+region_summary = data.groupby('Region')[['Sales', 'Profit']].sum()
+print("\nRegion-wise Summary:\n", region_summary)
+
+region_summary.plot(kind='bar', color=['skyblue', 'orange'])
+plt.title('Region-wise Sales and Profit')
+plt.ylabel('Amount')
+plt.xlabel('Region')
+plt.show()
+
+# -------------------------------
+# Step 8: Top 10 Products by Profit
+# -------------------------------
+top_products = data.groupby('Product Name')['Profit'].sum().sort_values(ascending=False).head(10)
+print("\nTop 10 Products by Profit:\n", top_products)
+
+top_products.plot(kind='barh', color='green')
+plt.title('Top 10 Products by Profit')
+plt.xlabel('Profit')
+plt.show()
+
+# -------------------------------
+# Step 9: Correlation Analysis
+# -------------------------------
+plt.figure(figsize=(6,4))
+plt.matshow(data[['Sales', 'Profit', 'Quantity', 'Discount']].corr(), cmap='coolwarm', fignum=1)
+plt.xticks(range(4), ['Sales', 'Profit', 'Quantity', 'Discount'], rotation=45)
+plt.yticks(range(4), ['Sales', 'Profit', 'Quantity', 'Discount'])
+plt.colorbar()
+plt.title('Correlation Heatmap', pad=20)
+plt.show()
